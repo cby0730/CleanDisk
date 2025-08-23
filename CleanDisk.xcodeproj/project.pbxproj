@@ -35,16 +35,6 @@
 			path = CleanDisk;
 			sourceTree = "<group>";
 		};
-		25DE63222E54238B006712EF /* CleanDiskTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CleanDiskTests;
-			sourceTree = "<group>";
-		};
-		25DE632C2E54238B006712EF /* CleanDiskUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CleanDiskUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +66,6 @@
 			isa = PBXGroup;
 			children = (
 				25DE63132E542389006712EF /* CleanDisk */,
-				25DE63222E54238B006712EF /* CleanDiskTests */,
-				25DE632C2E54238B006712EF /* CleanDiskUITests */,
 				25DE63122E542389006712EF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,9 +118,6 @@
 			dependencies = (
 				25DE63212E54238B006712EF /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				25DE63222E54238B006712EF /* CleanDiskTests */,
-			);
 			name = CleanDiskTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +137,6 @@
 			);
 			dependencies = (
 				25DE632B2E54238B006712EF /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				25DE632C2E54238B006712EF /* CleanDiskUITests */,
 			);
 			name = CleanDiskUITests;
 			packageProductDependencies = (

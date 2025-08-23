@@ -1,0 +1,58 @@
+{
+  "" : {
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDisk-master.dia",
+    "emit-module-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDisk-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDisk-master-emit-module.dia",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDisk-master.swiftdeps"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/CleanDiskApp.swift" : {
+    "const-values" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.swiftconstvalues",
+    "dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.d",
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.dia",
+    "index-unit-output-path" : "/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.o",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp.swiftdeps",
+    "swiftmodule" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/CleanDiskApp~partial.swiftmodule"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/ContentView.swift" : {
+    "const-values" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/FileNode.swift" : {
+    "const-values" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.swiftconstvalues",
+    "dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.d",
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.dia",
+    "index-unit-output-path" : "/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.o",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode.swiftdeps",
+    "swiftmodule" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileNode~partial.swiftmodule"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/FileSystemScanner.swift" : {
+    "const-values" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.swiftconstvalues",
+    "dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.d",
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.dia",
+    "index-unit-output-path" : "/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.o",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner.swiftdeps",
+    "swiftmodule" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/FileSystemScanner~partial.swiftmodule"
+  },
+  "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Debug/CleanDisk.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

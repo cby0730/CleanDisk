@@ -1,0 +1,35 @@
+{
+  "" : {
+    "const-values" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDisk-master.swiftconstvalues",
+    "dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDisk-master.d",
+    "diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDisk-master.dia",
+    "emit-module-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDisk-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDisk-master-emit-module.dia",
+    "swift-dependencies" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDisk-master.swiftdeps"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/CleanDiskApp.swift" : {
+    "index-unit-output-path" : "/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDiskApp.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDiskApp.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/CleanDiskApp.o"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/ContentView.swift" : {
+    "index-unit-output-path" : "/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/ContentView.o"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/FileNode.swift" : {
+    "index-unit-output-path" : "/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/FileNode.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/FileNode.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/FileNode.o"
+  },
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/FileSystemScanner.swift" : {
+    "index-unit-output-path" : "/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/FileSystemScanner.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/FileSystemScanner.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/FileSystemScanner.o"
+  },
+  "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/Objects-normal/x86_64/GeneratedAssetSymbols.o"
+  }
+}

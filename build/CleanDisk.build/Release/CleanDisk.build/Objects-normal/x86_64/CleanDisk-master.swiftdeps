@@ -1,0 +1,10 @@
+version: "Apple Swift version 6.1.2 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)"
+options: "d2bca48aeb0a1fa16c9fd8ba95781226edc5d60c67971d7c8ce4214143304d2b"
+build_start_time: [1755616841, 89419000]
+build_end_time: [1755616845, 938559000]
+inputs:
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/CleanDiskApp.swift": [1755585135, 254425873]
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/ContentView.swift": [1755616828, 358217467]
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/FileNode.swift": [1755616506, 71181649]
+  "/Users/chen-bo-yo/CleanDisk/CleanDisk/FileSystemScanner.swift": [1755616480, 277293138]
+  "/Users/chen-bo-yo/CleanDisk/build/CleanDisk.build/Release/CleanDisk.build/DerivedSources/GeneratedAssetSymbols.swift": [1755615831, 872761901]
