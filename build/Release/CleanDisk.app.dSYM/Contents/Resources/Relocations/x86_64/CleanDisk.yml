@@ -1,5 +1,0 @@
----
-triple:          'x86_64-apple-darwin'
-binary-path:     '/Users/chen-bo-yo/CleanDisk/build/Release/CleanDisk.app/Contents/MacOS/CleanDisk'
-relocations:     []
-...
