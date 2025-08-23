@@ -24,7 +24,7 @@ struct SidebarControlPanel: View {
             Spacer()
         }
         .padding()
-        .frame(minWidth: 280)
+        .frame(minWidth: 250, idealWidth: 280, maxWidth: 350)
     }
 }
 

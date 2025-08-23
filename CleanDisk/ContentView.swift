@@ -14,17 +14,28 @@ struct ContentView: View {
             if let rootNode = scanner.rootNode {
                 VStack(spacing: 0) {
                     // 上半部：檔案樹和詳細資訊
-                    HStack(spacing: 0) {
-                        // 檔案樹
-                        FileTreeView(node: rootNode)
-                            .environmentObject(scanner)
-                            .frame(minWidth: 400)
-                        
-                        Divider()
-                        
-                        // 詳細資訊面板
-                        DetailPanel(selectedNode: scanner.selectedNode)
-                            .frame(width: 300)
+                    GeometryReader { geometry in
+                        HStack(spacing: 0) {
+                            // 計算可用寬度（扣除 Divider）
+                            let availableWidth = geometry.size.width - 1
+                            
+                            // 詳細資訊面板的理想寬度
+                            let detailPanelWidth = min(300, max(200, availableWidth * 0.3))
+                            
+                            // 檔案樹的剩餘寬度
+                            let fileTreeWidth = availableWidth - detailPanelWidth
+                            
+                            // 檔案樹
+                            FileTreeView(node: rootNode)
+                                .environmentObject(scanner)
+                                .frame(width: max(250, fileTreeWidth))
+                            
+                            Divider()
+                            
+                            // 詳細資訊面板
+                            DetailPanel(selectedNode: scanner.selectedNode)
+                                .frame(width: detailPanelWidth)
+                        }
                     }
                     .frame(minHeight: 400)
                     

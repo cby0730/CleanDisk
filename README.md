@@ -32,25 +32,34 @@
 - **垃圾桶刪除**：檔案移動到垃圾桶，可以復原
 
 ### 🎨 使用者體驗
-- **原生介面**：使用 SwiftUI 打造的原生 macOS 介面
+- **原生介面**：使用 SwiftUI 打造的現代化 macOS 介面
 - **右鍵選單**：在 Finder 中顯示、展開/收合、複製路徑
 - **鍵盤快捷鍵**：支援常用的鍵盤操作
 - **深色模式**：完整支援 macOS 深色模式
+- **無障礙支援**：遵循 macOS 無障礙設計指南
+- **效能最佳化**：針對 Apple Silicon 和最新 macOS 版本優化
 
 ## 🖥️ 系統需求
 
-- **作業系統**：macOS 11.0 (Big Sur) 或更新版本
-- **架構**：支援 Intel 和 Apple Silicon (M1/M2) Mac
-- **記憶體**：建議 4GB RAM 以上
-- **磁碟空間**：約 10MB 安裝空間
+- **作業系統**：macOS 15.5 (Sequoia) 或更新版本
+- **架構**：支援 Apple Silicon (M1/M2/M3/M4) Mac
+- **記憶體**：建議 8GB RAM 以上
+- **磁碟空間**：約 50MB 安裝空間
 
 ## 📦 安裝方法
 
+> **重要提醒**：此應用程式需要 macOS 15.5 (Sequoia) 或更新版本。如果您的 Mac 版本較舊，請先升級作業系統。
+
 ### 從原始碼編譯
+
+**前置需求**：
+- macOS 15.5+ 開發環境
+- Xcode 16.0 或更新版本
+- Command Line Tools
 
 1. **克隆專案**
    ```bash
-   git clone https://github.com/yourusername/CleanDisk.git
+   git clone https://github.com/cby0730/CleanDisk.git
    cd CleanDisk
    ```
 
@@ -62,10 +71,11 @@
 3. **編譯執行**
    - 選擇目標設備（Mac）
    - 按下 ⌘+R 或點擊「Run」按鈕
+   - 首次執行可能需要授予檔案存取權限
 
 ### 下載編譯版本
 
-1. 前往 [Releases 頁面](https://github.com/yourusername/CleanDisk/releases)
+1. 前往 [Releases 頁面](https://github.com/cby0730/CleanDisk/releases/tag/installer)
 2. 下載最新版本的 `CleanDisk.dmg`
 3. 開啟 DMG 檔案並將 CleanDisk.app 拖拉到應用程式資料夾
 
@@ -119,18 +129,20 @@
 - 在升級前釋放磁碟空間
 - 找出重複或遺忘的檔案
 
-## 🛡️ 安全性
+## 🛡️ 安全性與隱私
 
 - **只讀掃描**：掃描過程不會修改任何檔案
-- **垃圾桶刪除**：所有刪除操作都會將檔案移動到垃圾桶
+- **垃圾桶刪除**：所有刪除操作都會將檔案移動到垃圾桶，可復原
 - **確認對話框**：刪除前會顯示詳細的確認資訊
-- **權限檢查**：遵循 macOS 的檔案權限系統
+- **權限檢查**：遵循 macOS 的檔案權限和隱私保護系統
+- **本地處理**：所有數據處理均在本機進行，不上傳任何資訊
+- **沙盒環境**：應用程式運行在 macOS 沙盒環境中，保障系統安全
 
 ## 🔧 技術棧
 
 - **語言**：Swift 5.0+
 - **UI 框架**：SwiftUI
-- **最低版本**：macOS 11.0
+- **最低版本**：macOS 15.5 (Sequoia)
 - **架構**：MVVM + Service Layer
 - **並發處理**：Combine + DispatchQueue
 
@@ -150,7 +162,7 @@
 
 如果您發現 bug 或有功能建議，請：
 
-1. 檢查 [Issues](https://github.com/yourusername/CleanDisk/issues) 中是否已有相同問題
+1. 檢查 [Issues](https://github.com/cby0730/CleanDisk/issues) 中是否已有相同問題
 2. 如果沒有，請建立新的 Issue
 3. 提供詳細的描述和重現步驟
 4. 如果可能，請附上螢幕截圖
@@ -161,19 +173,12 @@
 
 ## 📞 聯繫
 
-- **專案網址**：https://github.com/yourusername/CleanDisk
-- **問題回報**：https://github.com/yourusername/CleanDisk/issues
-- **電子郵件**：your.email@example.com
-
-## 🙏 致謝
-
-感謝所有為這個專案做出貢獻的開發者和使用者！
-
-特別感謝：
-- Apple 提供優秀的 SwiftUI 框架
-- macOS 社群的開發者們
-- 所有測試使用者的寶貴回饋
+- **專案網址**：https://github.com/cby0730/CleanDisk
+- **問題回報**：https://github.com/cby0730/CleanDisk/issues
+- **電子郵件**：ab26100630@gmail.com
 
 ---
 
-**免責聲明**：使用本軟體刪除檔案前請務必確認，雖然檔案會移動到垃圾桶，但仍建議在刪除重要檔案前進行備份。
+**免責聲明**：使用本軟體刪除檔案前請務必確認，雖然檔案會移動到垃圾桶，但仍建議在刪除重要檔案前進行備份。本軟體需要 macOS 15.5 或更新版本才能正常運行。
+
+**系統相容性**：此應用程式專為最新版 macOS 設計，充分利用了 Sequoia 的新功能和效能改進。如需支援較舊版本的 macOS，請查看舊版本的發布分支。

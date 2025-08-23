@@ -67,6 +67,7 @@ struct DetailPanelBasicInfo: View {
             DetailRow(label: "類型", value: node.fileType)
             DetailRow(label: "大小", value: node.formattedSize)
             DetailRow(label: "路徑", value: node.url.path)
+                .lineLimit(3)
             
             if let modDate = node.modificationDate {
                 DetailRow(
@@ -154,6 +155,7 @@ struct DetailRow: View {
             Text(value)
                 .font(.body)
                 .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
