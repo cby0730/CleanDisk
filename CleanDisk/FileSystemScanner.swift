@@ -75,141 +75,145 @@ class FileSystemScanner: ObservableObject {
     
     /// 遞歸計算項目數量，使用與掃描相同的邏輯
     private func countItemsRecursively(at url: URL) throws -> Int {
-        let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
-        
-        do {
-            let resourceValues = try url.resourceValues(forKeys: Set(resourceKeys))
+        return try autoreleasepool {
+            let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
             
-            // 跳過符號連結
-            if resourceValues.isSymbolicLink == true {
-                return 0
-            }
-            
-            // 計算當前項目
-            var count = 1
-            
-            // 如果是目錄，遞歸計算子項目
-            if resourceValues.isDirectory == true {
-                do {
-                    let contents = try fileManager.contentsOfDirectory(
-                        at: url,
-                        includingPropertiesForKeys: resourceKeys,
-                        options: [] // 預設會包含隱藏檔案
-                    )
-                    
-                    for childURL in contents {
-                        autoreleasepool {
-                            do {
-                                let childCount = try countItemsRecursively(at: childURL)
-                                count += childCount
-                            } catch {
-                                // 無法存取的檔案就跳過，與 scanDirectory 保持一致
+            do {
+                let resourceValues = try url.resourceValues(forKeys: Set(resourceKeys))
+                
+                // 跳過符號連結
+                if resourceValues.isSymbolicLink == true {
+                    return 0
+                }
+                
+                // 計算當前項目
+                var count = 1
+                
+                // 如果是目錄，遞歸計算子項目
+                if resourceValues.isDirectory == true {
+                    do {
+                        let contents = try fileManager.contentsOfDirectory(
+                            at: url,
+                            includingPropertiesForKeys: resourceKeys,
+                            options: [] // 預設會包含隱藏檔案
+                        )
+                        
+                        for childURL in contents {
+                            autoreleasepool {
+                                do {
+                                    let childCount = try countItemsRecursively(at: childURL)
+                                    count += childCount
+                                } catch {
+                                    // 無法存取的檔案就跳過，與 scanDirectory 保持一致
+                                }
                             }
                         }
+                    } catch {
+                        // 無法存取目錄內容，只計算目錄本身
                     }
-                } catch {
-                    // 無法存取目錄內容，只計算目錄本身
                 }
+                
+                return count
+            } catch {
+                // 無法存取的檔案就跳過
+                return 0
             }
-            
-            return count
-        } catch {
-            // 無法存取的檔案就跳過
-            return 0
         }
     }
     
     /// 掃描資料夾並建立子節點
     private func scanDirectory(node: FileNode) throws -> Int64 {
-        // 更新當前掃描路徑
-        DispatchQueue.main.async {
-            self.scanProgress.currentPath = node.url.path
-        }
-        
-        guard node.isDirectory else {
-            // 對於檔案，更新進度並取得大小
+        return try autoreleasepool {
+            // 更新當前掃描路徑
             DispatchQueue.main.async {
-                self.scanProgress.processedItems += 1
+                self.scanProgress.currentPath = node.url.path
             }
-            do {
-                let size = try getFileSize(at: node.url)
-                if size == 0 {
-                    print("📄 檔案 \(node.url.lastPathComponent) 大小為 0")
-                }
-                return size
-            } catch {
-                print("❌ 無法取得檔案 \(node.url.path) 大小: \(error)")
-                return 0
-            }
-        }
-        
-        var totalSize: Int64 = 0
-        var childNodes: [FileNode] = []
-        let resourceKeys: [URLResourceKey] = [
-            .isDirectoryKey,
-            .isSymbolicLinkKey,
-            .totalFileAllocatedSizeKey,
-            .fileAllocatedSizeKey,
-            .fileSizeKey
-        ]
-        
-        do {
-            let contents = try fileManager.contentsOfDirectory(
-                at: node.url,
-                includingPropertiesForKeys: resourceKeys,
-                options: [] // 預設會包含隱藏檔案
-            )
             
-            for childURL in contents {
-                autoreleasepool {
-                    do {
-                        let resourceValues = try childURL.resourceValues(forKeys: Set(resourceKeys))
-                        
-                        // 跳過符號連結
-                        if resourceValues.isSymbolicLink == true {
-                            return
+            guard node.isDirectory else {
+                // 對於檔案，更新進度並取得大小
+                DispatchQueue.main.async {
+                    self.scanProgress.processedItems += 1
+                }
+                do {
+                    let size = try getFileSize(at: node.url)
+                    if size == 0 {
+                        print("📄 檔案 \(node.url.lastPathComponent) 大小為 0")
+                    }
+                    return size
+                } catch {
+                    print("❌ 無法取得檔案 \(node.url.path) 大小: \(error)")
+                    return 0
+                }
+            }
+            
+            var totalSize: Int64 = 0
+            var childNodes: [FileNode] = []
+            let resourceKeys: [URLResourceKey] = [
+                .isDirectoryKey,
+                .isSymbolicLinkKey,
+                .totalFileAllocatedSizeKey,
+                .fileAllocatedSizeKey,
+                .fileSizeKey
+            ]
+            
+            do {
+                let contents = try fileManager.contentsOfDirectory(
+                    at: node.url,
+                    includingPropertiesForKeys: resourceKeys,
+                    options: [] // 預設會包含隱藏檔案
+                )
+                
+                for childURL in contents {
+                    autoreleasepool {
+                        do {
+                            let resourceValues = try childURL.resourceValues(forKeys: Set(resourceKeys))
+                            
+                            // 跳過符號連結
+                            if resourceValues.isSymbolicLink == true {
+                                return
+                            }
+                            
+                            let childNode = FileNode(url: childURL)
+                            
+                            if resourceValues.isDirectory == true {
+                                // 遞迴掃描子資料夾
+                                childNode.size = try scanDirectory(node: childNode)
+                            } else {
+                                // 遞迴掃描檔案
+                                childNode.size = try scanDirectory(node: childNode)
+                            }
+                            
+                            totalSize += childNode.size
+                            childNodes.append(childNode)
+                            
+                        } catch {
+                            // 無法存取的檔案就跳過
+                            // 注意：這裡不更新進度，因為countAllItems在遇到錯誤時也會跳過
                         }
-                        
-                        let childNode = FileNode(url: childURL)
-                        
-                        if resourceValues.isDirectory == true {
-                            // 遞迴掃描子資料夾
-                            childNode.size = try scanDirectory(node: childNode)
-                        } else {
-                            // 遞迴掃描檔案
-                            childNode.size = try scanDirectory(node: childNode)
-                        }
-                        
-                        totalSize += childNode.size
-                        childNodes.append(childNode)
-                        
-                    } catch {
-                        // 無法存取的檔案就跳過
-                        // 注意：這裡不更新進度，因為countAllItems在遇到錯誤時也會跳過
                     }
                 }
-            }
-            
-            // 按大小排序子節點
-            childNodes.sort { $0.size > $1.size }
-            
-            // 在主執行緒更新 UI
-            DispatchQueue.main.async {
-                node.children = childNodes
+                
+                // 按大小排序子節點
+                childNodes.sort { $0.size > $1.size }
+                
+                // 在主執行緒更新 UI
+                DispatchQueue.main.async {
+                    node.children = childNodes
+                    // 目錄處理完畢，更新進度
+                    self.scanProgress.processedItems += 1
+                }
+                
+            } catch {
+                // 無法存取資料夾內容，但資料夾本身可能有大小
+                totalSize = try getFileSize(at: node.url)
                 // 目錄處理完畢，更新進度
-                self.scanProgress.processedItems += 1
+                DispatchQueue.main.async {
+                    self.scanProgress.processedItems += 1
+                }
             }
             
-        } catch {
-            // 無法存取資料夾內容，但資料夾本身可能有大小
-            totalSize = try getFileSize(at: node.url)
-            // 目錄處理完畢，更新進度
-            DispatchQueue.main.async {
-                self.scanProgress.processedItems += 1
-            }
+            return totalSize
         }
-        
-        return totalSize
     }
     
     /// 取得檔案大小（最有效的方式）

@@ -178,7 +178,9 @@ struct ScanProgress {
     
     var percentage: Double {
         guard totalItems > 0 else { return 0.0 }
-        return Double(processedItems) / Double(totalItems) * 100.0
+        let rawPercentage = Double(processedItems) / Double(totalItems) * 100.0
+        // 確保百分比在 0-100 範圍內，防止 ProgressView 警告
+        return min(100.0, max(0.0, rawPercentage))
     }
     
     var isComplete: Bool {
