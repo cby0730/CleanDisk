@@ -8,212 +8,302 @@ class FileSystemScanner: ObservableObject {
     @Published var rootNode: FileNode?
     @Published var selectedNode: FileNode?
     @Published var errorMessage: String?
+    @Published var lastScanSummary: ScanSummary?
+    @Published var wasLastResultCleared: Bool = false
     
     // 刪除服務
     @Published var deletionService = FileDeletionService()
     
     private let fileManager = FileManager.default
     private var cancellables = Set<AnyCancellable>()
+    private var cancelRequested = false
+    private var currentScanId: UUID?
+    private var scanStartDate: Date?
+
+    private enum ScanError: Error {
+        case cancelled
+    }
+
+    private func shouldContinue(scanId: UUID) -> Bool {
+        return !cancelRequested && currentScanId == scanId
+    }
+
+    private func checkCancellation(scanId: UUID) throws {
+        if !shouldContinue(scanId: scanId) {
+            throw ScanError.cancelled
+        }
+    }
     
     /// 開始掃描指定路徑
     func startScan(at path: String) {
         guard !isScanning else { return }
         
+        cancelRequested = false
+        let scanId = UUID()
+        currentScanId = scanId
+        scanStartDate = Date()
+
         isScanning = true
         errorMessage = nil
         scanProgress = ScanProgress()
+        wasLastResultCleared = false
+        lastScanSummary = nil
         
         let url = URL(fileURLWithPath: path)
         rootNode = FileNode(url: url)
         
         // 在背景執行緒進行掃描
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.performScan()
+            self?.performScan(scanId: scanId)
         }
+    }
+
+    /// 取消目前掃描
+    func cancelScan() {
+        guard isScanning else { return }
+
+        cancelRequested = true
+        currentScanId = nil
+
+        DispatchQueue.main.async {
+            self.isScanning = false
+            self.scanProgress.currentPath = "掃描已取消"
+            self.errorMessage = nil
+            self.rootNode = nil
+            self.selectedNode = nil
+            self.scanStartDate = nil
+        }
+    }
+
+    /// 清除目前的掃描結果，釋放記憶體
+    func clearScanResult() {
+        guard !isScanning else { return }
+        rootNode = nil
+        selectedNode = nil
+        scanProgress = ScanProgress()
+        deletionService.clearDeletionQueue()
+        wasLastResultCleared = lastScanSummary != nil
     }
     
     /// 執行實際的掃描作業
-    private func performScan() {
+    private func performScan(scanId: UUID) {
         guard let rootNode = rootNode else { return }
         
         do {
             // 第一階段：計算總檔案數量以計算進度
             DispatchQueue.main.async {
+                guard self.shouldContinue(scanId: scanId) else { return }
                 self.scanProgress.currentPath = "正在計算檔案總數..."
             }
             
-            let totalCount = try countAllItems(at: rootNode.url)
+            try checkCancellation(scanId: scanId)
+
+            let totalCount = try countAllItems(at: rootNode.url, scanId: scanId)
             
             DispatchQueue.main.async {
+                guard self.shouldContinue(scanId: scanId) else { return }
                 self.scanProgress.totalItems = totalCount
                 self.scanProgress.currentPath = "開始掃描..."
                 print("📊 總項目數量: \(totalCount)")
             }
             
             // 第二階段：實際掃描並計算大小
-            let calculatedSize = try scanDirectory(node: rootNode)
+            try checkCancellation(scanId: scanId)
+
+            let calculatedSize = try scanDirectory(node: rootNode, scanId: scanId)
             
             DispatchQueue.main.async {
+                guard self.shouldContinue(scanId: scanId) else { return }
                 rootNode.size = calculatedSize
                 rootNode.sortChildrenBySize()
                 self.isScanning = false
                 self.scanProgress.currentPath = "掃描完成"
+                let summary = ScanSummary(
+                    path: rootNode.url.path,
+                    totalItems: self.scanProgress.totalItems,
+                    totalSize: calculatedSize,
+                    startedAt: self.scanStartDate ?? Date(),
+                    completedAt: Date()
+                )
+                self.lastScanSummary = summary
+                self.currentScanId = nil
+                self.scanStartDate = nil
             }
             
+        } catch ScanError.cancelled {
+            DispatchQueue.main.async {
+                if self.scanProgress.currentPath != "掃描已取消" {
+                    self.scanProgress.currentPath = "掃描已取消"
+                }
+                self.isScanning = false
+                self.currentScanId = nil
+                self.scanStartDate = nil
+            }
         } catch {
             DispatchQueue.main.async {
                 self.errorMessage = "掃描失敗: \(error.localizedDescription)"
                 self.isScanning = false
+                self.currentScanId = nil
+                self.scanStartDate = nil
             }
         }
     }
     
     /// 計算指定路徑下的所有項目數量
-    private func countAllItems(at url: URL) throws -> Int {
-        return try countItemsRecursively(at: url)
+    private func countAllItems(at url: URL, scanId: UUID) throws -> Int {
+        try checkCancellation(scanId: scanId)
+        return try countItemsRecursively(at: url, scanId: scanId)
     }
     
     /// 遞歸計算項目數量，使用與掃描相同的邏輯
-    private func countItemsRecursively(at url: URL) throws -> Int {
-        return try autoreleasepool {
-            let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
+    private func countItemsRecursively(at url: URL, scanId: UUID) throws -> Int {
+        try checkCancellation(scanId: scanId)
+
+        let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
+        
+        do {
+            let resourceValues = try url.resourceValues(forKeys: Set(resourceKeys))
             
-            do {
-                let resourceValues = try url.resourceValues(forKeys: Set(resourceKeys))
-                
-                // 跳過符號連結
-                if resourceValues.isSymbolicLink == true {
-                    return 0
-                }
-                
-                // 計算當前項目
-                var count = 1
-                
-                // 如果是目錄，遞歸計算子項目
-                if resourceValues.isDirectory == true {
-                    do {
-                        let contents = try fileManager.contentsOfDirectory(
-                            at: url,
-                            includingPropertiesForKeys: resourceKeys,
-                            options: [] // 預設會包含隱藏檔案
-                        )
-                        
-                        for childURL in contents {
-                            autoreleasepool {
-                                do {
-                                    let childCount = try countItemsRecursively(at: childURL)
-                                    count += childCount
-                                } catch {
-                                    // 無法存取的檔案就跳過，與 scanDirectory 保持一致
-                                }
-                            }
-                        }
-                    } catch {
-                        // 無法存取目錄內容，只計算目錄本身
-                    }
-                }
-                
-                return count
-            } catch {
-                // 無法存取的檔案就跳過
+            // 跳過符號連結
+            if resourceValues.isSymbolicLink == true {
                 return 0
             }
+            
+            // 計算當前項目
+            var count = 1
+            
+            // 如果是目錄，遞歸計算子項目
+            if resourceValues.isDirectory == true {
+                do {
+                    let contents = try fileManager.contentsOfDirectory(
+                        at: url,
+                        includingPropertiesForKeys: resourceKeys,
+                        options: [] // 預設會包含隱藏檔案
+                    )
+                    
+                    for childURL in contents {
+                        try checkCancellation(scanId: scanId)
+                        do {
+                            let childCount = try countItemsRecursively(at: childURL, scanId: scanId)
+                            count += childCount
+                        } catch {
+                            if let scanError = error as? ScanError, scanError == .cancelled {
+                                throw scanError
+                            }
+                            // 無法存取的檔案就跳過，與 scanDirectory 保持一致
+                        }
+                    }
+                } catch {
+                    if let scanError = error as? ScanError, scanError == .cancelled {
+                        throw scanError
+                    }
+                    // 無法存取目錄內容，只計算目錄本身
+                }
+            }
+            
+            return count
+        } catch {
+            if let scanError = error as? ScanError, scanError == .cancelled {
+                throw scanError
+            }
+            // 無法存取的檔案就跳過
+            return 0
         }
     }
     
     /// 掃描資料夾並建立子節點
-    private func scanDirectory(node: FileNode) throws -> Int64 {
-        return try autoreleasepool {
-            // 更新當前掃描路徑
-            DispatchQueue.main.async {
-                self.scanProgress.currentPath = node.url.path
-            }
-            
-            guard node.isDirectory else {
-                // 對於檔案，更新進度並取得大小
-                DispatchQueue.main.async {
-                    self.scanProgress.processedItems += 1
-                }
-                do {
-                    let size = try getFileSize(at: node.url)
-                    if size == 0 {
-                        print("📄 檔案 \(node.url.lastPathComponent) 大小為 0")
-                    }
-                    return size
-                } catch {
-                    print("❌ 無法取得檔案 \(node.url.path) 大小: \(error)")
-                    return 0
-                }
-            }
-            
-            var totalSize: Int64 = 0
-            var childNodes: [FileNode] = []
-            let resourceKeys: [URLResourceKey] = [
-                .isDirectoryKey,
-                .isSymbolicLinkKey,
-                .totalFileAllocatedSizeKey,
-                .fileAllocatedSizeKey,
-                .fileSizeKey
-            ]
-            
-            do {
-                let contents = try fileManager.contentsOfDirectory(
-                    at: node.url,
-                    includingPropertiesForKeys: resourceKeys,
-                    options: [] // 預設會包含隱藏檔案
-                )
-                
-                for childURL in contents {
-                    autoreleasepool {
-                        do {
-                            let resourceValues = try childURL.resourceValues(forKeys: Set(resourceKeys))
-                            
-                            // 跳過符號連結
-                            if resourceValues.isSymbolicLink == true {
-                                return
-                            }
-                            
-                            let childNode = FileNode(url: childURL)
-                            
-                            if resourceValues.isDirectory == true {
-                                // 遞迴掃描子資料夾
-                                childNode.size = try scanDirectory(node: childNode)
-                            } else {
-                                // 遞迴掃描檔案
-                                childNode.size = try scanDirectory(node: childNode)
-                            }
-                            
-                            totalSize += childNode.size
-                            childNodes.append(childNode)
-                            
-                        } catch {
-                            // 無法存取的檔案就跳過
-                            // 注意：這裡不更新進度，因為countAllItems在遇到錯誤時也會跳過
-                        }
-                    }
-                }
-                
-                // 按大小排序子節點
-                childNodes.sort { $0.size > $1.size }
-                
-                // 在主執行緒更新 UI
-                DispatchQueue.main.async {
-                    node.children = childNodes
-                    // 目錄處理完畢，更新進度
-                    self.scanProgress.processedItems += 1
-                }
-                
-            } catch {
-                // 無法存取資料夾內容，但資料夾本身可能有大小
-                totalSize = try getFileSize(at: node.url)
-                // 目錄處理完畢，更新進度
-                DispatchQueue.main.async {
-                    self.scanProgress.processedItems += 1
-                }
-            }
-            
-            return totalSize
+    private func scanDirectory(node: FileNode, scanId: UUID) throws -> Int64 {
+        try checkCancellation(scanId: scanId)
+
+        // 更新當前掃描路徑
+        DispatchQueue.main.async {
+            guard self.shouldContinue(scanId: scanId) else { return }
+            self.scanProgress.currentPath = node.url.path
         }
+
+        guard node.isDirectory else {
+            DispatchQueue.main.async {
+                guard self.shouldContinue(scanId: scanId) else { return }
+                self.scanProgress.processedItems += 1
+            }
+            do {
+                let size = try getFileSize(at: node.url)
+                if size == 0 {
+                    print("📄 檔案 \(node.url.lastPathComponent) 大小為 0")
+                }
+                return size
+            } catch {
+                print("❌ 無法取得檔案 \(node.url.path) 大小: \(error)")
+                return 0
+            }
+        }
+
+        var totalSize: Int64 = 0
+        var childNodes: [FileNode] = []
+        let resourceKeys: [URLResourceKey] = [
+            .isDirectoryKey,
+            .isSymbolicLinkKey,
+            .totalFileAllocatedSizeKey,
+            .fileAllocatedSizeKey,
+            .fileSizeKey
+        ]
+
+        do {
+            let contents = try fileManager.contentsOfDirectory(
+                at: node.url,
+                includingPropertiesForKeys: resourceKeys,
+                options: [] // 預設會包含隱藏檔案
+            )
+
+            for childURL in contents {
+                try checkCancellation(scanId: scanId)
+
+                do {
+                    let resourceValues = try childURL.resourceValues(forKeys: Set(resourceKeys))
+
+                    if resourceValues.isSymbolicLink == true {
+                        continue
+                    }
+
+                    let childNode = FileNode(url: childURL)
+
+                    if resourceValues.isDirectory == true {
+                        childNode.size = try scanDirectory(node: childNode, scanId: scanId)
+                    } else {
+                        childNode.size = try scanDirectory(node: childNode, scanId: scanId)
+                    }
+
+                    totalSize += childNode.size
+                    childNodes.append(childNode)
+
+                } catch {
+                    if let scanError = error as? ScanError, scanError == .cancelled {
+                        throw scanError
+                    }
+                    // 無法存取的檔案就跳過
+                }
+            }
+
+            childNodes.sort { $0.size > $1.size }
+
+            DispatchQueue.main.async {
+                guard self.shouldContinue(scanId: scanId) else { return }
+                node.children = childNodes
+                self.scanProgress.processedItems += 1
+            }
+
+        } catch {
+            if let scanError = error as? ScanError, scanError == .cancelled {
+                throw scanError
+            }
+            totalSize = try getFileSize(at: node.url)
+            DispatchQueue.main.async {
+                guard self.shouldContinue(scanId: scanId) else { return }
+                self.scanProgress.processedItems += 1
+            }
+        }
+
+        return totalSize
     }
     
     /// 取得檔案大小（最有效的方式）
@@ -312,5 +402,35 @@ class FileSystemScanner: ObservableObject {
             }
             node.sortChildrenBySize()
         }
+    }
+}
+
+/// 掃描摘要資訊
+struct ScanSummary: Identifiable {
+    let id = UUID()
+    let path: String
+    let totalItems: Int
+    let totalSize: Int64
+    let startedAt: Date
+    let completedAt: Date
+    
+    var formattedTotalSize: String {
+        ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+    }
+    
+    var duration: TimeInterval {
+        max(0, completedAt.timeIntervalSince(startedAt))
+    }
+    
+    var formattedDuration: String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = duration >= 3600 ? [.hour, .minute, .second] : (duration >= 60 ? [.minute, .second] : [.second])
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = .dropLeading
+        return formatter.string(from: duration) ?? String(format: "%.1f 秒", duration)
+    }
+    
+    var formattedCompletedAt: String {
+        DateFormatter.localizedString(from: completedAt, dateStyle: .medium, timeStyle: .short)
     }
 }
