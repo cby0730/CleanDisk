@@ -82,7 +82,8 @@ CleanDisk/
 │   ├── Services/                    # 業務邏輯服務
 │   │   └── FileDeletionService.swift # 檔案刪除服務
 │   │
-│   ├── ViewModels/                  # 視圖模型（預留）
+│   ├── ViewModels/                  # 視圖模型
+│   │   └── FileTreeManager.swift    # 檔案樹管理（已定義但未整合到 UI）
 │   │
 │   ├── Assets.xcassets/             # 應用程式資源
 │   └── CleanDisk.entitlements       # 應用程式權限
@@ -199,6 +200,12 @@ class FileDeletionService: ObservableObject {
 - 待刪除項目列表
 - 批次操作控制
 - 確認對話框
+
+#### FileTreeManager（已定義但未整合）
+- 定義了排序選項（名稱、大小、修改時間、類型）
+- 提供隱藏檔案過濾邏輯
+- 提供搜尋過濾方法
+- **注意**：目前邏輯已實作但尚未整合到 UI 控制項中
 
 ## 💻 開發環境設置
 
@@ -589,14 +596,16 @@ var modificationDate: Date?
 ### 短期目標（下個版本）
 
 1. **效能優化**
-   - [ ] 實作取消掃描功能
+   - [x] 實作取消掃描功能
+   - [x] 添加記憶體使用優化（掃描結果清除功能）
    - [ ] 優化大型檔案系統的掃描速度
-   - [ ] 添加記憶體使用優化
 
 2. **使用者體驗改善**
+   - [ ] 整合排序 UI 控制項（邏輯已實作於 FileTreeManager）
+   - [ ] 整合隱藏檔案切換 UI（邏輯已實作於 FileTreeManager）
    - [ ] 添加鍵盤快捷鍵支援
    - [ ] 改善搜尋功能（正規表達式支援）
-   - [ ] 添加檔案類型過濾
+   - [ ] 添加檔案類型過濾 UI
 
 3. **錯誤處理**
    - [ ] 更詳細的錯誤訊息
