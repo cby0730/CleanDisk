@@ -19,6 +19,12 @@ class FileSystemScanner: ObservableObject {
     private var cancelRequested = false
     private var currentScanId: UUID?
     private var scanStartDate: Date?
+    
+    // 進度更新節流機制
+    private var lastProgressUpdateTime = Date()
+    private var pendingProcessedItems = 0
+    private var pendingCurrentPath: String = ""
+    private let progressUpdateInterval: TimeInterval = 0.1
 
     private enum ScanError: Error {
         case cancelled
@@ -48,6 +54,11 @@ class FileSystemScanner: ObservableObject {
         scanProgress = ScanProgress()
         wasLastResultCleared = false
         lastScanSummary = nil
+        
+        // 初始化節流變數
+        lastProgressUpdateTime = Date()
+        pendingProcessedItems = 0
+        pendingCurrentPath = ""
         
         let url = URL(fileURLWithPath: path)
         rootNode = FileNode(url: url)
@@ -111,6 +122,9 @@ class FileSystemScanner: ObservableObject {
             try checkCancellation(scanId: scanId)
 
             let calculatedSize = try scanDirectory(node: rootNode, scanId: scanId)
+            
+            // 掃描結束前，強制更新最後一次進度
+            updateProgressToMainThread(force: true, scanId: scanId)
             
             DispatchQueue.main.async {
                 guard self.shouldContinue(scanId: scanId) else { return }
@@ -215,17 +229,12 @@ class FileSystemScanner: ObservableObject {
     private func scanDirectory(node: FileNode, scanId: UUID) throws -> Int64 {
         try checkCancellation(scanId: scanId)
 
-        // 更新當前掃描路徑
-        DispatchQueue.main.async {
-            guard self.shouldContinue(scanId: scanId) else { return }
-            self.scanProgress.currentPath = node.url.path
-        }
+        // 累積進度更新（使用節流機制）
+        pendingCurrentPath = node.url.path
+        pendingProcessedItems += 1
+        updateProgressToMainThread(force: false, scanId: scanId)
 
         guard node.isDirectory else {
-            DispatchQueue.main.async {
-                guard self.shouldContinue(scanId: scanId) else { return }
-                self.scanProgress.processedItems += 1
-            }
             do {
                 let size = try getFileSize(at: node.url)
                 if size == 0 {
@@ -289,7 +298,6 @@ class FileSystemScanner: ObservableObject {
             DispatchQueue.main.async {
                 guard self.shouldContinue(scanId: scanId) else { return }
                 node.children = childNodes
-                self.scanProgress.processedItems += 1
             }
 
         } catch {
@@ -297,13 +305,35 @@ class FileSystemScanner: ObservableObject {
                 throw scanError
             }
             totalSize = try getFileSize(at: node.url)
-            DispatchQueue.main.async {
-                guard self.shouldContinue(scanId: scanId) else { return }
-                self.scanProgress.processedItems += 1
-            }
         }
 
         return totalSize
+    }
+    
+    /// 節流更新進度到主執行緒
+    /// - Parameters:
+    ///   - force: 是否強制更新（忽略時間間隔）
+    ///   - scanId: 當前掃描 ID
+    private func updateProgressToMainThread(force: Bool, scanId: UUID) {
+        let now = Date()
+        let shouldUpdate = force || now.timeIntervalSince(lastProgressUpdateTime) >= progressUpdateInterval
+        
+        guard shouldUpdate, pendingProcessedItems > 0 else { return }
+        
+        // 擷取當前累積的進度資訊
+        let itemsToUpdate = pendingProcessedItems
+        let pathToUpdate = pendingCurrentPath
+        
+        // 重置累積計數器
+        pendingProcessedItems = 0
+        lastProgressUpdateTime = now
+        
+        // 更新到主執行緒
+        DispatchQueue.main.async {
+            guard self.shouldContinue(scanId: scanId) else { return }
+            self.scanProgress.processedItems += itemsToUpdate
+            self.scanProgress.currentPath = pathToUpdate
+        }
     }
     
     /// 取得檔案大小（最有效的方式）

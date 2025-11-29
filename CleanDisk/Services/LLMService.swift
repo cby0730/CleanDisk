@@ -129,8 +129,28 @@ class LLMService: ObservableObject {
             let modelFactory = LLMModelFactory.shared
             let configuration = ModelConfiguration(id: selectedModel.rawValue)
             
-            loadingProgress = "下載/載入模型中（\(selectedModel.estimatedSize)）..."
+            // 檢查模型是否已下載
+            let modelPath = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Caches/models/mlx-community")
+                .appendingPathComponent(selectedModel.rawValue.components(separatedBy: "/").last ?? "")
+            
+            let wasDownloaded = FileManager.default.fileExists(atPath: modelPath.path)
+            
+            if wasDownloaded {
+                loadingProgress = "載入模型中..."
+            } else {
+                loadingProgress = "下載模型中（\(selectedModel.estimatedSize)）..."
+            }
+            
+            // 載入模型容器（如果需要會先下載）
             model = try await modelFactory.loadContainer(configuration: configuration)
+            
+            // 如果模型是剛下載的，顯示「載入模型中」狀態
+            if !wasDownloaded {
+                loadingProgress = "載入模型中..."
+                // 給使用者至少 0.5 秒看到載入狀態
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
             
             currentLoadedModel = selectedModel
             isModelLoaded = true
@@ -171,9 +191,21 @@ class LLMService: ObservableObject {
         
         isGenerating = true
         loadingProgress = "AI 分析中..."
+        
+        // 確保至少顯示 1 秒的分析中狀態
+        let startTime = Date()
+        
         defer {
-            isGenerating = false
-            loadingProgress = ""
+            Task {
+                let elapsedTime = Date().timeIntervalSince(startTime)
+                if elapsedTime < 1.0 {
+                    try? await Task.sleep(nanoseconds: UInt64((1.0 - elapsedTime) * 1_000_000_000))
+                }
+                await MainActor.run {
+                    isGenerating = false
+                    loadingProgress = ""
+                }
+            }
         }
         
         // 建立 prompt

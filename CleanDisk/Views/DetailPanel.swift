@@ -202,7 +202,7 @@ struct DetailPanelAISuggestion: View {
                         ProgressView()
                             .controlSize(.mini)
                             .frame(width: 12, height: 12)
-                        Text("模型載入中")
+                        Text("載入模型中")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -305,6 +305,11 @@ struct DetailPanelAISuggestion: View {
                     .foregroundColor(.red)
                     .padding(.vertical, 4)
             }
+        }
+        .onChange(of: llmService.selectedModel) { oldValue, newValue in
+            // 當模型改變時，清空舊的 AI 建議
+            aiSuggestion = nil
+            showingSuggestion = false
         }
     }
     
