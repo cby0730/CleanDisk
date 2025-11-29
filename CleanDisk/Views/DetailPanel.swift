@@ -3,6 +3,10 @@ import SwiftUI
 /// 詳細資訊面板
 struct DetailPanel: View {
     let selectedNode: FileNode?
+    @EnvironmentObject var llmService: LLMService
+    
+    @State private var aiSuggestion: FileDeletionSuggestion?
+    @State private var showingSuggestion: Bool = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -14,6 +18,16 @@ struct DetailPanel: View {
                     VStack(alignment: .leading, spacing: 16) {
                         // 基本資訊
                         DetailPanelBasicInfo(node: node)
+                        
+                        // AI 建議區塊（僅對檔案顯示）
+                        if !node.isDirectory {
+                            Divider()
+                            DetailPanelAISuggestion(
+                                node: node,
+                                aiSuggestion: $aiSuggestion,
+                                showingSuggestion: $showingSuggestion
+                            )
+                        }
                         
                         Divider()
                         
@@ -32,6 +46,11 @@ struct DetailPanel: View {
                         Spacer()
                     }
                     .padding()
+                }
+                .onChange(of: node.id) { oldValue, newValue in
+                    // 當選擇的檔案改變時，重置 AI 建議狀態
+                    aiSuggestion = nil
+                    showingSuggestion = false
                 }
             } else {
                 DetailPanelEmptyState()
@@ -156,6 +175,148 @@ struct DetailRow: View {
                 .font(.body)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// AI 刪除建議區塊
+struct DetailPanelAISuggestion: View {
+    let node: FileNode
+    @EnvironmentObject var llmService: LLMService
+    
+    @Binding var aiSuggestion: FileDeletionSuggestion?
+    @Binding var showingSuggestion: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("AI 刪除建議")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                // 模型狀態指示
+                if !llmService.isModelLoaded {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .frame(width: 12, height: 12)
+                        Text("模型載入中")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            // 模型選擇器
+            HStack {
+                Text("模型:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Picker("選擇模型", selection: $llmService.selectedModel) {
+                    ForEach(LLMModel.allCases) { model in
+                        HStack {
+                            Text(model.displayName)
+                            Text("(\(model.estimatedSize))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .tag(model)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .disabled(llmService.isGenerating)
+            }
+            .padding(.vertical, 4)
+            
+            // 按鈕或載入狀態
+            if llmService.isGenerating {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: 16, height: 16)
+                    Text(llmService.loadingProgress)
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
+            } else if showingSuggestion, let suggestion = aiSuggestion {
+                // 顯示建議結果
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(suggestion.icon)
+                            .font(.title2)
+                        Text(suggestion.recommendation)
+                            .font(.headline)
+                            .foregroundColor(suggestion.shouldDelete ? .red : .green)
+                    }
+                    
+                    DetailRow(label: "信心度", value: suggestion.confidence.rawValue)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("原因")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(suggestion.reasoning)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    
+                    // 重新分析按鈕
+                    Button("重新分析") {
+                        Task {
+                            await askAI()
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .foregroundColor(.blue)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.1))
+                )
+            } else {
+                // 詢問 AI 按鈕
+                Button(action: {
+                    Task {
+                        await askAI()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                        Text("詢問 AI 建議")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .disabled(!llmService.isModelLoaded)
+            }
+            
+            // 錯誤訊息
+            if let error = llmService.error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.vertical, 4)
+            }
+        }
+    }
+    
+    private func askAI() async {
+        do {
+            let suggestion = try await llmService.getSuggestion(for: node)
+            await MainActor.run {
+                self.aiSuggestion = suggestion
+                self.showingSuggestion = true
+            }
+        } catch {
+            print("❌ AI 建議生成失敗: \(error)")
         }
     }
 }

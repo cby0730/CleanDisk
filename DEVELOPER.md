@@ -42,6 +42,11 @@ CleanDisk 採用現代的 SwiftUI MVVM 架構，結合 Service Layer 模式，�
 │  │ File System │ │ File Deletion       │ │
 │  │ Scanner     │ │ Service             │ │
 │  └─────────────┘ └─────────────────────┘ │
+│  ┌─────────────┐                         │
+│  │ LLM Service │                         │
+│  │ (MLX)       │                         │
+│  └─────────────┘                         │
+└─────────────────────────────────────────┘
 └─────────────────────────────────────────┘
 ┌─────────────────────────────────────────┐
 │                Models                   │ ← 資料模型層
@@ -81,6 +86,7 @@ CleanDisk/
 │   │
 │   ├── Services/                    # 業務邏輯服務
 │   │   └── FileDeletionService.swift # 檔案刪除服務
+│   │   └── LLMService.swift          # AI 智能分析服務 (基於 MLX)
 │   │
 │   ├── ViewModels/                  # 視圖模型
 │   │   └── FileTreeManager.swift    # 檔案樹管理（已定義但未整合到 UI）
@@ -167,7 +173,29 @@ class FileDeletionService: ObservableObject {
 - 使用 `FileManager.trashItem` 而非直接刪除
 - 提供確認對話框
 - 詳細的錯誤回報
+- 詳細的錯誤回報
 - 支援取消操作
+
+### 4. LLMService (AI 服務)
+
+```swift
+class LLMService: ObservableObject {
+    @Published var isModelLoaded: Bool = false
+    @Published var isGenerating: Bool = false
+    @Published var selectedModel: LLMModel
+}
+```
+
+**職責**：
+- 管理本地 LLM 模型的下載、載入與卸載
+- 封裝 MLX 框架的複雜性
+- 生成檔案刪除建議與理由
+
+**技術細節**：
+- 使用 `MLX` 與 `MLXLMCommon` 框架
+- 支援多種量化模型 (4-bit/8-bit) 以適應不同硬體
+- 實作了 Prompt Engineering 來引導模型輸出 JSON 格式
+- 包含 JSON 解析失敗時的 Fallback 機制
 
 ### 4. View 層組件
 
@@ -220,6 +248,14 @@ class FileDeletionService: ObservableObject {
 
 3. **Git**
    - 版本控制工具
+
+4. **Git LFS**
+   - 用於下載大型模型文件（如果需要）
+
+### 依賴庫 (Swift Package Manager)
+
+- **MLX Swift**: Apple 的機器學習框架
+- **MLX LLM**: 用於 LLM 推論的工具庫
 
 ### 環境配置
 
@@ -494,6 +530,31 @@ func clearDeletionQueue()
 
 func executeFileDeletion(completion: @escaping ([String]) -> Void)
 // 執行批次刪除
+
+### LLMService
+
+#### 屬性
+
+```swift
+@Published var isModelLoaded: Bool
+// 模型是否已載入記憶體
+
+@Published var isGenerating: Bool
+// 是否正在生成建議
+
+@Published var selectedModel: LLMModel
+// 當前選擇使用的模型
+```
+
+#### 方法
+
+```swift
+func loadModel() async
+// 下載並載入選定的模型
+
+func getSuggestion(for fileNode: FileNode) async throws -> FileDeletionSuggestion
+// 分析檔案並回傳刪除建議
+```
 ```
 
 ### FileNode
@@ -637,7 +698,7 @@ var modificationDate: Date?
    - [ ] 備份建議
 
 2. **智慧功能**
-   - [ ] 機器學習驅動的清理建議
+   - [x] 機器學習驅動的清理建議 (已實作 LLMService)
    - [ ] 自動分類檔案
    - [ ] 預測性磁碟清理
 
