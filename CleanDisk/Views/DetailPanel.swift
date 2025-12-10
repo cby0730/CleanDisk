@@ -298,12 +298,23 @@ struct DetailPanelAISuggestion: View {
                 .disabled(!llmService.isModelLoaded)
             }
             
-            // 錯誤訊息
+            // AI 建議錯誤處理
             if let error = llmService.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .padding(.vertical, 4)
+                VStack(alignment: .leading, spacing: 4) {
+                    if let description = error.errorDescription {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    if let suggestion = error.recoverySuggestion {
+                        Text(suggestion)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
             }
         }
         .onChange(of: llmService.selectedModel) { oldValue, newValue in

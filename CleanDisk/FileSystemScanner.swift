@@ -7,12 +7,12 @@ class FileSystemScanner: ObservableObject {
     @Published var scanProgress: ScanProgress = ScanProgress()
     @Published var rootNode: FileNode?
     @Published var selectedNode: FileNode?
-    @Published var errorMessage: String?
+    @Published var error: AppError?
     @Published var lastScanSummary: ScanSummary?
     @Published var wasLastResultCleared: Bool = false
     
-    // 刪除服務
-    @Published var deletionService = FileDeletionService()
+    // 刪除服務（透過依賴注入）
+    let deletionService: FileDeletionService
     
     private let fileManager = FileManager.default
     private var cancellables = Set<AnyCancellable>()
@@ -26,8 +26,10 @@ class FileSystemScanner: ObservableObject {
     private var pendingCurrentPath: String = ""
     private let progressUpdateInterval: TimeInterval = 0.1
 
-    private enum ScanError: Error {
-        case cancelled
+    /// 初始化掃描器
+    /// - Parameter deletionService: 檔案刪除服務
+    init(deletionService: FileDeletionService) {
+        self.deletionService = deletionService
     }
 
     private func shouldContinue(scanId: UUID) -> Bool {
@@ -50,7 +52,7 @@ class FileSystemScanner: ObservableObject {
         scanStartDate = Date()
 
         isScanning = true
-        errorMessage = nil
+        error = nil
         scanProgress = ScanProgress()
         wasLastResultCleared = false
         lastScanSummary = nil
@@ -79,7 +81,7 @@ class FileSystemScanner: ObservableObject {
         DispatchQueue.main.async {
             self.isScanning = false
             self.scanProgress.currentPath = "掃描已取消"
-            self.errorMessage = nil
+            self.error = nil
             self.rootNode = nil
             self.selectedNode = nil
             self.scanStartDate = nil
@@ -144,7 +146,7 @@ class FileSystemScanner: ObservableObject {
                 self.scanStartDate = nil
             }
             
-        } catch ScanError.cancelled {
+        } catch let error as ScanError where error == .cancelled {
             DispatchQueue.main.async {
                 if self.scanProgress.currentPath != "掃描已取消" {
                     self.scanProgress.currentPath = "掃描已取消"
@@ -155,7 +157,7 @@ class FileSystemScanner: ObservableObject {
             }
         } catch {
             DispatchQueue.main.async {
-                self.errorMessage = "掃描失敗: \(error.localizedDescription)"
+                self.error = AppError.scanError(.unknown(error))
                 self.isScanning = false
                 self.currentScanId = nil
                 self.scanStartDate = nil
@@ -276,11 +278,7 @@ class FileSystemScanner: ObservableObject {
 
                     let childNode = FileNode(url: childURL)
 
-                    if resourceValues.isDirectory == true {
-                        childNode.size = try scanDirectory(node: childNode, scanId: scanId)
-                    } else {
-                        childNode.size = try scanDirectory(node: childNode, scanId: scanId)
-                    }
+                    childNode.size = try scanDirectory(node: childNode, scanId: scanId)
 
                     totalSize += childNode.size
                     childNodes.append(childNode)

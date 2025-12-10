@@ -5,7 +5,7 @@ import Combine
 class FileDeletionService: ObservableObject {
     @Published var deletionQueue: [FileNode] = []
     @Published var isDeletingFiles: Bool = false
-    @Published var deletionError: String?
+    @Published var error: AppError?
     @Published var showDeletionConfirmation: Bool = false
     
     private let fileManager = FileManager.default
@@ -41,13 +41,14 @@ class FileDeletionService: ObservableObject {
         guard !deletionQueue.isEmpty else { return }
         
         isDeletingFiles = true
-        deletionError = nil
+        error = nil
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             
             var successCount = 0
             var failedItems: [String] = []
+            var firstError: Error?
             
             for node in self.deletionQueue {
                 do {
@@ -56,6 +57,9 @@ class FileDeletionService: ObservableObject {
                     print("✅ 已移動到垃圾桶: \(node.name)")
                 } catch {
                     failedItems.append(node.name)
+                    if firstError == nil {
+                        firstError = error
+                    }
                     print("❌ 刪除失敗: \(node.name) - \(error.localizedDescription)")
                 }
             }
@@ -64,12 +68,17 @@ class FileDeletionService: ObservableObject {
                 self.isDeletingFiles = false
                 
                 if failedItems.isEmpty {
-                    self.deletionError = nil
+                    self.error = nil
                     // 刪除成功，通知完成回調
                     completion([])
                     self.clearDeletionQueue()
                 } else {
-                    self.deletionError = "刪除失敗的項目: \(failedItems.joined(separator: ", "))"
+                    // 使用 DeletionError
+                    if let firstError = firstError {
+                        self.error = AppError.deletionError(.trashFailed(failedItems.first ?? "", firstError))
+                    } else {
+                        self.error = AppError.deletionError(.unknown(NSError(domain: "FileDeletion", code: -1, userInfo: [NSLocalizedDescriptionKey: "刪除失敗"])))
+                    }
                     completion(failedItems)
                 }
             }

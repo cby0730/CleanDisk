@@ -240,6 +240,8 @@ struct FileNodeContextMenu: View {
 #Preview {
     let sampleNode = FileNode(url: URL(fileURLWithPath: "/Applications"))
     sampleNode.size = 1024 * 1024 * 100 // 100MB
+    let deletionService = FileDeletionService()
+    let scanner = FileSystemScanner(deletionService: deletionService)
     
     return FileNodeRow(
         node: sampleNode,
@@ -248,5 +250,5 @@ struct FileNodeContextMenu: View {
         searchText: "",
         maxSize: 1024 * 1024 * 1000 // 1GB
     )
-    .environmentObject(FileSystemScanner())
+    .environmentObject(scanner)
 }

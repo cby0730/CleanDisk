@@ -163,13 +163,13 @@ struct SidebarErrorMessages: View {
     var body: some View {
         VStack(spacing: 8) {
             // 掃描錯誤訊息
-            if let errorMessage = scanner.errorMessage {
-                ErrorMessageView(message: errorMessage, color: .red)
+            if let error = scanner.error {
+                ErrorMessageView(error: error, color: .red)
             }
             
             // 刪除錯誤訊息
-            if let deletionError = scanner.deletionService.deletionError {
-                ErrorMessageView(message: deletionError, color: .red)
+            if let error = scanner.deletionService.error {
+                ErrorMessageView(error: error, color: .red)
             }
             
             // 刪除進度
@@ -190,16 +190,26 @@ struct SidebarErrorMessages: View {
 
 /// 錯誤訊息視圖
 struct ErrorMessageView: View {
-    let message: String
+    let error: AppError
     let color: Color
     
     var body: some View {
-        Text(message)
-            .font(.caption)
-            .foregroundColor(color)
-            .padding()
-            .background(color.opacity(0.1))
-            .cornerRadius(8)
+        VStack(alignment: .leading, spacing: 4) {
+            if let description = error.errorDescription {
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(color)
+            }
+            
+            if let suggestion = error.recoverySuggestion {
+                Text(suggestion)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
     }
 }
 
@@ -301,8 +311,10 @@ private struct SummaryStat: View {
 }
 
 #Preview {
-    SidebarControlPanel(
-        scanner: FileSystemScanner(),
+    let deletionService = FileDeletionService()
+    let scanner = FileSystemScanner(deletionService: deletionService)
+    return SidebarControlPanel(
+        scanner: scanner,
         selectedPath: .constant("/")
     )
 }

@@ -1,8 +1,16 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var scanner = FileSystemScanner()
+    @StateObject private var deletionService = FileDeletionService()
+    @StateObject private var scanner: FileSystemScanner
     @State private var selectedPath = "/"
+    
+    init() {
+        // 創建 deletion service 和 scanner
+        let deletionService = FileDeletionService()
+        _deletionService = StateObject(wrappedValue: deletionService)
+        _scanner = StateObject(wrappedValue: FileSystemScanner(deletionService: deletionService))
+    }
     
     var body: some View {
         NavigationSplitView {
@@ -43,7 +51,7 @@ struct ContentView: View {
                     
                     // 下半部：刪除區域
                     DeletionZone(
-                        deletionService: scanner.deletionService,
+                        deletionService: deletionService,
                         scanner: scanner
                     )
                     .frame(maxHeight: 200)

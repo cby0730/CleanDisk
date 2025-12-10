@@ -251,7 +251,7 @@ struct DeletionQueueItem: View {
 
 #Preview {
     let deletionService = FileDeletionService()
-    let scanner = FileSystemScanner()
+    let scanner = FileSystemScanner(deletionService: deletionService)
     
     return DeletionZone(deletionService: deletionService, scanner: scanner)
 }

@@ -83,7 +83,7 @@ class LLMService: ObservableObject {
     @Published var isModelLoaded: Bool = false
     @Published var isGenerating: Bool = false
     @Published var loadingProgress: String = ""
-    @Published var error: String?
+    @Published var error: AppError?
     @Published var selectedModel: LLMModel {
         didSet {
             // 當模型改變時，保存到 UserDefaults
@@ -157,7 +157,7 @@ class LLMService: ObservableObject {
             loadingProgress = "模型已就緒"
             print("✅ LLM 模型載入成功: \(selectedModel.displayName)")
         } catch {
-            self.error = "模型載入失敗: \(error.localizedDescription)"
+            self.error = AppError.llmError(.modelLoadFailed(error))
             loadingProgress = ""
             print("❌ LLM 模型載入失敗: \(error)")
         }
@@ -343,17 +343,3 @@ private struct SuggestionResponse: Codable {
     let reasoning: String
 }
 
-/// LLM 服務錯誤
-enum LLMError: LocalizedError {
-    case modelNotLoaded
-    case generationFailed(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .modelNotLoaded:
-            return "AI 模型尚未載入，請稍候"
-        case .generationFailed(let message):
-            return "AI 生成失敗：\(message)"
-        }
-    }
-}

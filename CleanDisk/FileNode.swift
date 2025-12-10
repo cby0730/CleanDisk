@@ -50,12 +50,9 @@ class FileNode: ObservableObject, Identifiable {
     
     /// 用於拖拉操作的項目提供者
     var itemProvider: NSItemProvider {
-        let provider = NSItemProvider()
-        
-        // 直接註冊 URL，而不是使用 bookmark data
-        provider.registerObject(url as NSURL, visibility: .all)
-        
-        return provider
+        // 使用標準 URL 初始化，避免 NSSecureCoding 警告
+        // 這是 macOS 14+ 推薦的安全做法
+        return NSItemProvider(contentsOf: url) ?? NSItemProvider()
     }
     
     /// 文件擴展名

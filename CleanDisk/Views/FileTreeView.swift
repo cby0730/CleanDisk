@@ -110,6 +110,8 @@ struct FileNodeSubTree: View {
 
 #Preview {
     let sampleNode = FileNode(url: URL(fileURLWithPath: "/"))
+    let deletionService = FileDeletionService()
+    let scanner = FileSystemScanner(deletionService: deletionService)
     return FileTreeView(node: sampleNode)
-        .environmentObject(FileSystemScanner())
+        .environmentObject(scanner)
 }
