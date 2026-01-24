@@ -50,9 +50,11 @@ class FileNode: ObservableObject, Identifiable {
     
     /// 用於拖拉操作的項目提供者
     var itemProvider: NSItemProvider {
-        // 使用標準 URL 初始化，避免 NSSecureCoding 警告
-        // 這是 macOS 14+ 推薦的安全做法
-        return NSItemProvider(contentsOf: url) ?? NSItemProvider()
+        // 使用 URL 作為拖放對象，確保所有檔案類型都能正確處理
+        // NSItemProvider(contentsOf:) 會根據檔案內容類型返回不同 UTI，
+        // 可能導致某些檔案類型（如 PDF）無法被識別為 public.file-url
+        let provider = NSItemProvider(object: url as NSURL)
+        return provider
     }
     
     /// 文件擴展名
@@ -150,61 +152,96 @@ class FileNode: ObservableObject, Identifiable {
         }
     }
     
-    /// 搜尋子項目
-    func searchChildren(query: String) -> [FileNode] {
+    /// 搜尋子項目（使用迭代方式避免深層目錄堆疊溢出）
+    /// - Parameters:
+    ///   - query: 搜尋關鍵字
+    ///   - maxDepth: 最大搜尋深度，nil 表示不限制（預設）
+    /// - Returns: 符合條件的節點陣列
+    func searchChildren(query: String, maxDepth: Int? = nil) -> [FileNode] {
         guard !query.isEmpty else { return children }
         
         var results: [FileNode] = []
         
-        // 搜尋當前層級
-        for child in children {
-            if child.name.localizedCaseInsensitiveContains(query) {
-                results.append(child)
+        // 使用堆疊進行迭代式深度優先搜尋，避免遞迴導致的堆疊溢出
+        // 堆疊元素為 (節點, 當前深度)
+        var stack: [(node: FileNode, depth: Int)] = children.map { ($0, 1) }
+        
+        while !stack.isEmpty {
+            let (currentNode, currentDepth) = stack.removeLast()
+            
+            // 檢查是否符合搜尋條件
+            if currentNode.name.localizedCaseInsensitiveContains(query) {
+                results.append(currentNode)
             }
             
-            // 遞歸搜尋子目錄
-            if child.isDirectory {
-                results.append(contentsOf: child.searchChildren(query: query))
+            // 如果是目錄且未超過深度限制，將子節點加入堆疊
+            if currentNode.isDirectory {
+                let shouldContinue = maxDepth == nil || currentDepth < maxDepth!
+                if shouldContinue {
+                    // 反向加入以保持順序（因為堆疊是 LIFO）
+                    for child in currentNode.children.reversed() {
+                        stack.append((child, currentDepth + 1))
+                    }
+                }
             }
         }
         
         return results
     }
     
-    /// 計算總項目數
+    /// 計算總項目數（使用迭代方式避免堆疊溢出）
     var totalItemCount: Int {
         var count = 1 // 包含自己
+        var stack = children
         
-        for child in children {
-            count += child.totalItemCount
+        while !stack.isEmpty {
+            let current = stack.removeLast()
+            count += 1
+            // 只有目錄才需要遍歷子項目（保持與 fileCount、directoryCount 一致）
+            if current.isDirectory {
+                stack.append(contentsOf: current.children)
+            }
         }
         
         return count
     }
     
-    /// 計算檔案數量
+    /// 計算檔案數量（使用迭代方式避免堆疊溢出）
     var fileCount: Int {
         if !isDirectory {
             return 1
         }
         
         var count = 0
-        for child in children {
-            count += child.fileCount
+        var stack = children
+        
+        while !stack.isEmpty {
+            let current = stack.removeLast()
+            if current.isDirectory {
+                stack.append(contentsOf: current.children)
+            } else {
+                count += 1
+            }
         }
         
         return count
     }
     
-    /// 計算目錄數量
+    /// 計算目錄數量（使用迭代方式避免堆疊溢出）
     var directoryCount: Int {
         if !isDirectory {
             return 0
         }
         
         var count = 1 // 包含自己
-        for child in children {
-            count += child.directoryCount
+        var stack = children
+        
+        while !stack.isEmpty {
+            let current = stack.removeLast()
+            if current.isDirectory {
+                count += 1
+                stack.append(contentsOf: current.children)
+            }
         }
         
         return count

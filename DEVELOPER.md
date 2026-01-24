@@ -682,6 +682,67 @@ var modificationDate: Date?
 - 避免過度頻繁的畫面重繪
 - 更好的整體掃描效能
 
+### 為什麼從遞迴改為迭代？
+
+**問題**：深層目錄結構（如 `/System/Library/`）會導致遞迴調用過深，造成堆疊溢出（Stack Overflow）。
+
+**受影響的方法**：
+- `searchChildren(query:)` - 搜尋子項目
+- `totalItemCount` - 計算總項目數
+- `fileCount` - 計算檔案數量
+- `directoryCount` - 計算目錄數量
+
+**解決方案**：
+- 使用顯式堆疊（Array）取代遞迴調用堆疊
+- 實作迭代式深度優先搜尋（DFS）
+- 追蹤當前深度並支援深度限制
+
+**技術細節**：
+```swift
+// 使用堆疊進行迭代式 DFS
+var stack: [(node: FileNode, depth: Int)] = children.map { ($0, 1) }
+
+while !stack.isEmpty {
+    let (currentNode, currentDepth) = stack.removeLast()
+    // 處理節點...
+    
+    // 使用 reversed() 保持原始順序（因為堆疊是 LIFO）
+    for child in currentNode.children.reversed() {
+        stack.append((child, currentDepth + 1))
+    }
+}
+```
+
+**好處**：
+- 避免深層目錄導致的堆疊溢出
+- 可以處理任意深度的目錄結構
+- 記憶體使用更可預測
+- 支援深度限制功能
+
+### 拖放功能的 NSItemProvider 選擇
+
+**問題**：使用 `NSItemProvider(contentsOf:)` 時，某些檔案類型（特別是 PDF）無法被正確識別為 `public.file-url`，導致拖放功能失效。
+
+**原因分析**：
+- `NSItemProvider(contentsOf:)` 會根據檔案內容類型返回不同的 UTI
+- PDF 檔案可能被識別為 `com.adobe.pdf` 而非 `public.file-url`
+- 這導致 `hasItemConformingToTypeIdentifier("public.file-url")` 判斷失敗
+
+**解決方案**：
+```swift
+// 修改前
+return NSItemProvider(contentsOf: url) ?? NSItemProvider()
+
+// 修改後
+let provider = NSItemProvider(object: url as NSURL)
+return provider
+```
+
+**好處**：
+- 確保所有檔案類型都能正確處理
+- 統一使用 URL 作為拖放對象
+- 避免 UTI 類型判斷問題
+
 ### 為什麼要偵測模型下載狀態？
 
 **問題**：模型載入有兩種情況（首次下載 vs 本地載入），用戶需要知道當前正在進行哪個步驟。
@@ -790,5 +851,5 @@ var modificationDate: Date?
 ---
 
 **最後更新**：2026年1月24日
-**文件版本**：1.1.0
-**對應程式碼版本**：v1.1.0
+**文件版本**：1.2.0
+**對應程式碼版本**：v1.2.0

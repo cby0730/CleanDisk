@@ -27,17 +27,23 @@ struct DeletionZone: View {
     }
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        // 在閉包外部捕獲需要的引用（避免在閉包中捕獲整個 self）
+        let deletionService = self.deletionService
+        let scanner = self.scanner
+        
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier("public.file-url") {
-                provider.loadObject(ofClass: NSURL.self) { url, error in
-                    if let url = url as? URL {
-                        DispatchQueue.main.async {
-                            if let node = self.findNodeByURL(url, in: self.scanner.rootNode) {
-                                self.deletionService.addToDeletionQueue(node)
-                            }
+                provider.loadObject(ofClass: NSURL.self) { [weak deletionService, weak scanner] url, error in
+                    // 使用 weak 引用，如果視圖已消失則提前退出
+                    guard let url = url as? URL,
+                          let deletionService = deletionService,
+                          let scanner = scanner else { return }
+                    
+                    DispatchQueue.main.async {
+                        // 使用靜態方法避免捕獲 self
+                        if let node = Self.findNodeByURL(url, in: scanner.rootNode) {
+                            deletionService.addToDeletionQueue(node)
                         }
-                    } else if let error = error {
-                        print("❌ 無法載入拖拉的檔案: \(error)")
                     }
                 }
             }
@@ -45,10 +51,15 @@ struct DeletionZone: View {
         return true
     }
     
-    private func findNodeByURL(_ url: URL, in rootNode: FileNode?) -> FileNode? {
+    /// 根據 URL 在檔案樹中查找對應的節點（靜態方法，避免閉包捕獲 self）
+    private static func findNodeByURL(_ url: URL, in rootNode: FileNode?) -> FileNode? {
         guard let rootNode = rootNode else { return nil }
         
-        if rootNode.url == url {
+        // 使用標準化路徑進行比較，避免 URL 格式差異導致比較失敗
+        let targetPath = url.standardizedFileURL.path
+        let nodePath = rootNode.url.standardizedFileURL.path
+        
+        if nodePath == targetPath {
             return rootNode
         }
         
@@ -91,6 +102,34 @@ struct DeletionQueueView: View {
     @ObservedObject var deletionService: FileDeletionService
     @ObservedObject var scanner: FileSystemScanner
     
+    /// 生成確認刪除對話框的檔案清單訊息
+    private var deletionConfirmationMessage: String {
+        let queue = deletionService.deletionQueue
+        let totalSize = ByteCountFormatter.string(fromByteCount: deletionService.deletionQueueTotalSize, countStyle: .file)
+        
+        var message = "即將刪除以下項目：\n"
+        
+        // 最多顯示前 5 個檔案名稱
+        let maxDisplay = 5
+        let displayItems = queue.prefix(maxDisplay)
+        
+        for (index, node) in displayItems.enumerated() {
+            let icon = node.isDirectory ? "📁" : "📄"
+            let size = node.formattedSize
+            message += "\(index + 1). \(icon) \(node.name) (\(size))\n"
+        }
+        
+        // 如果超過 5 個，顯示還有多少個
+        if queue.count > maxDisplay {
+            let remaining = queue.count - maxDisplay
+            message += "...還有 \(remaining) 個項目\n"
+        }
+        
+        message += "\n總大小: \(totalSize)\n這些項目將被移動到垃圾桶。"
+        
+        return message
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             DeletionQueueHeader(deletionService: deletionService)
@@ -132,7 +171,7 @@ struct DeletionQueueView: View {
             }
             Button("取消", role: .cancel) { }
         } message: {
-            Text("這些項目將被移動到垃圾桶。總大小: \(ByteCountFormatter.string(fromByteCount: deletionService.deletionQueueTotalSize, countStyle: .file))")
+            Text(deletionConfirmationMessage)
         }
     }
 }
@@ -179,14 +218,17 @@ struct DeletionQueueList: View {
     @ObservedObject var deletionService: FileDeletionService
     
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: true) {
             LazyVStack(spacing: 4) {
                 ForEach(deletionService.deletionQueue) { node in
                     DeletionQueueItem(node: node, deletionService: deletionService)
                 }
             }
+            .padding(.vertical, 2)
         }
-        .frame(maxHeight: 120)
+        .frame(minHeight: 60, maxHeight: 200)
+        .background(Color(NSColor.textBackgroundColor).opacity(0.5))
+        .cornerRadius(6)
     }
 }
 

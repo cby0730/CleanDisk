@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var deletionService = FileDeletionService()
+    @StateObject private var deletionService: FileDeletionService
     @StateObject private var scanner: FileSystemScanner
     @State private var selectedPath = "/"
     
@@ -54,7 +54,7 @@ struct ContentView: View {
                         deletionService: deletionService,
                         scanner: scanner
                     )
-                    .frame(maxHeight: 200)
+                    .frame(maxHeight: 280)
                 }
             } else {
                 MainAreaEmptyState()
