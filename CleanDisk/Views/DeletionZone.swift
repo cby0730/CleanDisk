@@ -123,9 +123,10 @@ struct DeletionQueueView: View {
             titleVisibility: .visible
         ) {
             Button("刪除 \(deletionService.deletionQueue.count) 個項目", role: .destructive) {
-                deletionService.executeFileDeletion { failedItems in
-                    if failedItems.isEmpty {
-                        scanner.updateFileTreeAfterDeletion(deletedNodes: deletionService.deletionQueue)
+                deletionService.executeFileDeletion { deletedNodes in
+                    // 使用回傳的成功刪除節點來更新檔案樹
+                    if !deletedNodes.isEmpty {
+                        scanner.updateFileTreeAfterDeletion(deletedNodes: deletedNodes)
                     }
                 }
             }

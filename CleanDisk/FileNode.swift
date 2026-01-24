@@ -65,6 +65,50 @@ class FileNode: ObservableObject, Identifiable {
         return name.hasPrefix(".")
     }
     
+    /// 最後存取時間
+    var lastAccessDate: Date? {
+        do {
+            let values = try url.resourceValues(forKeys: [.contentAccessDateKey])
+            return values.contentAccessDate
+        } catch {
+            return nil
+        }
+    }
+    
+    /// 檔案是否被鎖定
+    var isLocked: Bool {
+        do {
+            let values = try url.resourceValues(forKeys: [.isUserImmutableKey])
+            return values.isUserImmutable ?? false
+        } catch {
+            return false
+        }
+    }
+    
+    /// 父資料夾名稱（提供上下文）
+    var parentFolderName: String {
+        return url.deletingLastPathComponent().lastPathComponent
+    }
+    
+    /// 是否位於快取目錄中
+    var isInCachesDir: Bool {
+        let path = url.path
+        return path.contains("/Caches/") || path.contains("/Cache/")
+    }
+    
+    /// 是否位於暫存目錄中
+    var isInTempDir: Bool {
+        let path = url.path
+        return path.hasPrefix("/tmp/") || path.hasPrefix("/private/tmp/") ||
+               path.contains("/Temp/") || path.contains("/tmp/")
+    }
+    
+    /// 距離最後修改的天數
+    var daysSinceModified: Int? {
+        guard let modDate = modificationDate else { return nil }
+        return Calendar.current.dateComponents([.day], from: modDate, to: Date()).day
+    }
+    
     /// 文件深度（用於樹狀顯示）
     var depth: Int = 0
     

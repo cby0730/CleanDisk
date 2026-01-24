@@ -254,7 +254,7 @@ struct DetailPanelAISuggestion: View {
                             .foregroundColor(suggestion.shouldDelete ? .red : .green)
                     }
                     
-                    DetailRow(label: "信心度", value: suggestion.confidence.rawValue)
+                    DetailRow(label: "模型的信心程度", value: suggestion.confidence.rawValue)
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("原因")
