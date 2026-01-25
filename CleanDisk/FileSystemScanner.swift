@@ -25,6 +25,12 @@ class FileSystemScanner: ObservableObject {
     private var pendingProcessedItems = 0
     private var pendingCurrentPath: String = ""
     private let progressUpdateInterval: TimeInterval = 0.1
+    
+    // MARK: - URL Cache (Thread-Safe)
+    /// 用於保護快取的並發隊列（讀取並發，寫入獨佔）
+    private let cacheQueue = DispatchQueue(label: "com.cleandisk.cache", attributes: .concurrent)
+    /// URL 路徑到 FileNode 的快取字典
+    private var _urlToNodeCache: [String: FileNode] = [:]
 
     /// 初始化掃描器
     /// - Parameter deletionService: 檔案刪除服務
@@ -77,6 +83,7 @@ class FileSystemScanner: ObservableObject {
 
         cancelRequested = true
         currentScanId = nil
+        clearCache()
 
         DispatchQueue.main.async {
             self.isScanning = false
@@ -96,11 +103,45 @@ class FileSystemScanner: ObservableObject {
         scanProgress = ScanProgress()
         deletionService.clearDeletionQueue()
         wasLastResultCleared = lastScanSummary != nil
+        clearCache()
+    }
+    
+    // MARK: - URL Cache Methods
+    
+    /// 新增節點到快取（執行緒安全，使用 barrier 獨佔寫入）
+    private func addToCache(_ node: FileNode) {
+        let key = node.url.standardizedFileURL.path
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            self?._urlToNodeCache[key] = node
+        }
+    }
+    
+    /// 根據 URL 查找對應的 FileNode（O(1) 時間複雜度，執行緒安全）
+    /// - Parameter url: 要查找的檔案 URL
+    /// - Returns: 對應的 FileNode，若不存在則返回 nil
+    func findNode(by url: URL) -> FileNode? {
+        let key = url.standardizedFileURL.path
+        return cacheQueue.sync {
+            return _urlToNodeCache[key]
+        }
+    }
+    
+    /// 清空快取（執行緒安全，使用 barrier 獨佔寫入）
+    private func clearCache() {
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            self?._urlToNodeCache.removeAll()
+        }
     }
     
     /// 執行實際的掃描作業
     private func performScan(scanId: UUID) {
         guard let rootNode = rootNode else { return }
+        
+        // 掃描開始時清空快取
+        clearCache()
+        
+        // 將 rootNode 加入快取
+        addToCache(rootNode)
         
         do {
             // 第一階段：計算總檔案數量以計算進度
@@ -277,6 +318,9 @@ class FileSystemScanner: ObservableObject {
                     }
 
                     let childNode = FileNode(url: childURL)
+                    
+                    // 將新節點加入快取
+                    addToCache(childNode)
 
                     childNode.size = try scanDirectory(node: childNode, scanId: scanId)
 
@@ -395,17 +439,34 @@ class FileSystemScanner: ObservableObject {
     
     // MARK: - 檔案樹更新功能
     
-    /// 更新檔案樹，移除已刪除的項目
+    /// 更新檔案樹，移除已刪除的項目（在主執行緒異步執行）
     func updateFileTreeAfterDeletion(deletedNodes: [FileNode]) {
         guard let rootNode = rootNode else { return }
         
         let deletedPaths = Set(deletedNodes.map { $0.url.path })
-        removeDeletedNodes(from: rootNode, deletedPaths: deletedPaths)
         
-        // 重新計算大小
-        recalculateSizes(node: rootNode)
+        // 從快取中移除已刪除的節點
+        for node in deletedNodes {
+            removeFromCache(node)
+        }
         
-        print("🔄 檔案樹已更新，移除了 \(deletedPaths.count) 個項目")
+        // 在主執行緒異步執行（不阻塞當前操作，符合 SwiftUI 執行緒安全要求）
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            self.removeDeletedNodes(from: rootNode, deletedPaths: deletedPaths)
+            self.recalculateSizes(node: rootNode)
+            
+            print("🔄 檔案樹已更新，移除了 \(deletedPaths.count) 個項目")
+        }
+    }
+    
+    /// 從快取中移除節點（執行緒安全）
+    private func removeFromCache(_ node: FileNode) {
+        let key = node.url.standardizedFileURL.path
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            self?._urlToNodeCache.removeValue(forKey: key)
+        }
     }
     
     /// 遞歸移除已刪除的節點

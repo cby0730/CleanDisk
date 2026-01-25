@@ -39,9 +39,9 @@ struct DeletionZone: View {
                           let deletionService = deletionService,
                           let scanner = scanner else { return }
                     
-                    DispatchQueue.main.async {
-                        // 使用靜態方法避免捕獲 self
-                        if let node = Self.findNodeByURL(url, in: scanner.rootNode) {
+                    // 使用快取進行 O(1) 查找，避免遍歷整棵樹
+                    if let node = scanner.findNode(by: url) {
+                        DispatchQueue.main.async {
                             deletionService.addToDeletionQueue(node)
                         }
                     }
@@ -49,27 +49,6 @@ struct DeletionZone: View {
             }
         }
         return true
-    }
-    
-    /// 根據 URL 在檔案樹中查找對應的節點（靜態方法，避免閉包捕獲 self）
-    private static func findNodeByURL(_ url: URL, in rootNode: FileNode?) -> FileNode? {
-        guard let rootNode = rootNode else { return nil }
-        
-        // 使用標準化路徑進行比較，避免 URL 格式差異導致比較失敗
-        let targetPath = url.standardizedFileURL.path
-        let nodePath = rootNode.url.standardizedFileURL.path
-        
-        if nodePath == targetPath {
-            return rootNode
-        }
-        
-        for child in rootNode.children {
-            if let found = findNodeByURL(url, in: child) {
-                return found
-            }
-        }
-        
-        return nil
     }
 }
 
