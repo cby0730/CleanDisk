@@ -738,10 +738,75 @@ let provider = NSItemProvider(object: url as NSURL)
 return provider
 ```
 
-**好處**：
+**好處**:
 - 確保所有檔案類型都能正確處理
 - 統一使用 URL 作為拖放對象
 - 避免 UTI 類型判斷問題
+
+### URL 快取機制與執行緒安全
+
+**問題 1**：拖放檔案到刪除清單時，使用遞迴 `findNodeByURL` 遍歷整棵檔案樹，在大型檔案樹（數萬節點）時造成 UI 卡頓。
+
+**問題 2**：`updateFileTreeAfterDeletion` 在背景執行緒修改 `@Published` 屬性，違反 SwiftUI 執行緒安全要求。
+
+**解決方案**：
+
+#### 1. URL 快取字典（O(1) 查找）
+
+```swift
+// MARK: - URL Cache (Thread-Safe)
+private let cacheQueue = DispatchQueue(label: "com.cleandisk.cache", attributes: .concurrent)
+private var _urlToNodeCache: [String: FileNode] = [:]
+
+// 寫入使用 barrier（獨佔）
+private func addToCache(_ node: FileNode) {
+    let key = node.url.standardizedFileURL.path
+    cacheQueue.async(flags: .barrier) { [weak self] in
+        self?._urlToNodeCache[key] = node
+    }
+}
+
+// 讀取使用 sync（並發安全）
+func findNode(by url: URL) -> FileNode? {
+    let key = url.standardizedFileURL.path
+    return cacheQueue.sync {
+        return _urlToNodeCache[key]
+    }
+}
+```
+
+**技術細節**：
+- 使用 **concurrent queue + barrier flags** 實現讀者-寫者鎖模式
+- 多個讀取可並發執行，寫入時獨佔存取
+- 使用 `[weak self]` 避免循環引用
+- 標準化路徑作為 key 避免 URL 格式差異
+
+#### 2. 主執行緒異步執行
+
+```swift
+func updateFileTreeAfterDeletion(deletedNodes: [FileNode]) {
+    // ...
+    // 在主執行緒異步執行（不阻塞當前操作）
+    DispatchQueue.main.async { [weak self] in
+        self?.removeDeletedNodes(from: rootNode, deletedPaths: deletedPaths)
+        self?.recalculateSizes(node: rootNode)
+    }
+}
+```
+
+**為什麼用 `main.async` 而非 `global.async`？**
+- `@Published` 屬性修改必須在主執行緒
+- `main.async` 是非阻塞的，不會卡住 UI
+- 刪除操作通常不涉及數萬個檔案，主執行緒處理速度足夠
+
+**效能比較**：
+
+| 指標 | 修改前 | 修改後 |
+|------|--------|--------|
+| 拖放查找複雜度 | O(N) 遞迴搜尋 | O(1) 字典查詢 |
+| 執行緒安全 | ❌ 背景修改 @Published | ✅ 主執行緒執行 |
+| 記憶體開銷 | 低 | 略增（快取字典） |
+| UI 卡頓（大型樹） | 嚴重 | 幾乎無 |
 
 ### 為什麼要偵測模型下載狀態？
 
